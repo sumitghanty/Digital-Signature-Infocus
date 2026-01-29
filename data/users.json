@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "id": "admin-1",
+      "username": "admin",
+      "password": "$2b$10$YO.Je8c0lSJ6G4lpPjilwe.o1UN9WX47IUNwpos9WG3JkW4l8BaH6",
+      "role": "admin",
+      "pfx": null,
+      "pfxPass": null
+    },
+    {
+      "id": "932dd4b8-4024-4de8-9cc6-7f6d41c36caa",
+      "username": "alice",
+      "password": "$2b$10$PhIFLNcmZb/.WRkrjlJunObnu2p1niLhUSM1UIVvcB23N8TqOX5ja",
+      "role": "user",
+      "pfx": "E:\\Projects\\PDF Signer Platform\\internal-pdf-signer\\backend\\certs\\alice-1768903243568.pfx",
+      "pfxPass": "alicepfx123"
+    }
+  ]
+}
