@@ -3,9 +3,22 @@ const path = require("path");
 const fs = require("fs");
 const db = require("../utils/db");
 
+function getOpenSslPath() {
+  const gitPath = "C:\\Program Files\\Git\\usr\\bin\\openssl.exe";
+  if (process.platform === "win32" && fs.existsSync(gitPath)) {
+    return `"${gitPath}"`;
+  }
+  return "openssl";
+}
+
+const OPENSSL_BIN = getOpenSslPath();
+
 function run(cmd) {
+  // Replace direct "openssl" call with our resolved path
+  const finalCmd = cmd.replace(/^openssl/, OPENSSL_BIN);
+
   return new Promise((resolve, reject) => {
-    exec(cmd, (err, stdout, stderr) => {
+    exec(finalCmd, (err, stdout, stderr) => {
       if (err) {
         reject(stderr || err.message);
       } else {

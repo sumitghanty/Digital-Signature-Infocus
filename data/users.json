@@ -5,8 +5,8 @@
       "username": "admin",
       "password": "$2b$10$YO.Je8c0lSJ6G4lpPjilwe.o1UN9WX47IUNwpos9WG3JkW4l8BaH6",
       "role": "admin",
-      "pfx": null,
-      "pfxPass": null
+      "pfx": "C:\\Users\\Admin\\Digital-Signature-Infocus\\certs\\admin-1769758870597.pfx",
+      "pfxPass": "123456"
     },
     {
       "id": "932dd4b8-4024-4de8-9cc6-7f6d41c36caa",
@@ -15,6 +15,14 @@
       "role": "user",
       "pfx": "E:\\Projects\\PDF Signer Platform\\internal-pdf-signer\\backend\\certs\\alice-1768903243568.pfx",
       "pfxPass": "alicepfx123"
+    },
+    {
+      "id": "c8864318-d40f-40bf-8ee6-998ef6dee910",
+      "username": "ranchi_dealer_admin",
+      "password": "$2b$10$AeHxP3dQszmrgajA2pEk7uG1.wEEa5l7qIuMBp0o4UBlatOjeeNq6",
+      "role": "user",
+      "pfx": "C:\\Users\\Admin\\Digital-Signature-Infocus\\certs\\ranchi_dealer_admin-1769758975986.pfx",
+      "pfxPass": "123456"
     }
   ]
 }
