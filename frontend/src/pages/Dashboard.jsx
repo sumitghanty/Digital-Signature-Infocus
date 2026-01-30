@@ -101,11 +101,6 @@ export default function Dashboard() {
 
     const handleDownload = () => {
         if (!signedFile) return;
-        // Direct link to download endpoint
-        window.location.href = `/api/sign/${signedFile}`;
-        // Or use fetch blob methodology if auth header is strictly required for GET (it is!)
-        // If window.location.href is used, the Authorization header won't be sent automatically.
-        // We need to fetch blob.
         downloadSecurely(signedFile);
     };
 
