@@ -9,44 +9,90 @@ import {
     TextField,
     Tabs,
     Tab,
-    Alert,
-    CircularProgress,
-    Dialog,
-    DialogTitle,
-    DialogContent,
-    DialogActions,
     Select,
     MenuItem,
     FormControl,
     InputLabel,
-    Chip,
-    Paper
+    Paper,
+    Avatar,
+    Divider,
+    CircularProgress
 } from '@mui/material';
 import {
     FileUp,
     FileCheck,
     KeyRound,
     ShieldPlus,
-    UserPlus,
-    Download,
-    FileText,
     Users,
-    FileSignature
+    Download,
+    FileSignature,
+    LayoutDashboard,
+    Clock,
+    Activity
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { useSnackbar } from 'notistack';
 
-function TabPanel(props) {
-    const { children, value, index, ...other } = props;
+// Animation variants
+const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+    exit: { opacity: 0, y: -20, transition: { duration: 0.2 } }
+};
+
+function TabPanel({ children, value, index, ...other }) {
     return (
         <div role="tabpanel" hidden={value !== index} {...other}>
-            {value === index && (
-                <Box sx={{ p: 3 }}>
-                    {children}
-                </Box>
-            )}
+            <AnimatePresence mode="wait">
+                {value === index && (
+                    <motion.div
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        variants={containerVariants}
+                    >
+                        <Box sx={{ p: 3 }}>
+                            {children}
+                        </Box>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
+    );
+}
+
+function StatCard({ title, value, icon, color, subtext }) {
+    return (
+        <Card sx={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+            <Box sx={{
+                position: 'absolute',
+                top: -20,
+                right: -20,
+                opacity: 0.1,
+                transform: 'rotate(15deg) scale(2.5)',
+                color: color
+            }}>
+                {icon}
+            </Box>
+            <CardContent>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Avatar sx={{ bgcolor: `${color}20`, color: color, width: 48, height: 48, mr: 2 }}>
+                        {icon}
+                    </Avatar>
+                    <Box>
+                        <Typography variant="body2" color="text.secondary" fontWeight={500}>{title}</Typography>
+                        <Typography variant="h4" fontWeight={700}>{value}</Typography>
+                    </Box>
+                </Box>
+                {subtext && (
+                    <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <Activity size={14} /> {subtext}
+                    </Typography>
+                )}
+            </CardContent>
+        </Card>
     );
 }
 
@@ -90,7 +136,7 @@ export default function Dashboard() {
             const res = await api.post('/sign', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' }
             });
-            setSignedFile(res.data.file); // Filename
+            setSignedFile(res.data.file);
             enqueueSnackbar('Document signed successfully!', { variant: 'success' });
         } catch (err) {
             enqueueSnackbar(err.response?.data?.error || 'Signing failed. Do you have a certificate?', { variant: 'error' });
@@ -152,13 +198,40 @@ export default function Dashboard() {
 
     return (
         <Box>
-            <Box sx={{ mb: 4 }}>
-                <Typography variant="h4" fontWeight={700}>Dashboard</Typography>
-                <Typography variant="body1" color="text.secondary">Manage your digital identity and documents</Typography>
+            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Box>
+                    <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
+                        Welcome back, {user?.username}
+                    </Typography>
+                    <Typography variant="body1" color="text.secondary">
+                        Here's what's happening with your digital signatures today.
+                    </Typography>
+                </Box>
+                <Button
+                    variant="contained"
+                    startIcon={<FileSignature />}
+                    onClick={() => setTabValue(1)}
+                    sx={{ borderRadius: '50px', px: 4 }}
+                >
+                    Sign Now
+                </Button>
             </Box>
 
-            <Paper sx={{ width: '100%', mb: 4, bgcolor: 'background.paper', borderRadius: 2 }}>
-                <Tabs value={tabValue} onChange={handleTabChange} indicatorColor="primary" textColor="primary" sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Paper sx={{ width: '100%', mb: 4, bgcolor: 'background.paper', borderRadius: 3, overflow: 'hidden' }}>
+                <Tabs
+                    value={tabValue}
+                    onChange={handleTabChange}
+                    indicatorColor="primary"
+                    textColor="primary"
+                    sx={{
+                        borderBottom: 1,
+                        borderColor: 'divider',
+                        px: 2,
+                        pt: 2,
+                        '& .MuiTab-root': { minHeight: 64, fontSize: '1rem' }
+                    }}
+                >
+                    <Tab icon={<LayoutDashboard size={20} />} iconPosition="start" label="Overview" />
                     <Tab icon={<FileSignature size={20} />} iconPosition="start" label="Sign Document" />
                     <Tab icon={<KeyRound size={20} />} iconPosition="start" label="Certificate" />
                     {user?.role === 'admin' && (
@@ -166,7 +239,68 @@ export default function Dashboard() {
                     )}
                 </Tabs>
 
+                {/* OVERVIEW TAB */}
                 <TabPanel value={tabValue} index={0}>
+                    <Grid container spacing={3}>
+                        <Grid item xs={12} md={4}>
+                            <StatCard
+                                title="Today's Signs"
+                                value="2"
+                                icon={<FileCheck size={32} />}
+                                color="#10b981"
+                                subtext="+3 this week"
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <StatCard
+                                title="Certificate Status"
+                                value="Active"
+                                icon={<ShieldPlus size={32} />}
+                                color="#6366f1"
+                                subtext="Expires in 90 days"
+                            />
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                            <StatCard
+                                title="Pending Actions"
+                                value="0"
+                                icon={<Clock size={32} />}
+                                color="#f59e0b"
+                                subtext="You are all caught up"
+                            />
+                        </Grid>
+
+                        <Grid item xs={12}>
+                            <Box sx={{ mt: 2 }}>
+                                <Typography variant="h6" gutterBottom>Recent Activity</Typography>
+                                <Card>
+                                    <CardContent sx={{ p: 0 }}>
+                                        {[1, 2, 3].map((item, i) => (
+                                            <Box key={i}>
+                                                <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', '&:hover': { bgcolor: 'rgba(255,255,255,0.02)' } }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: 'rgba(99, 102, 241, 0.1)', color: 'primary.main' }}>
+                                                            <FileCheck size={20} />
+                                                        </Box>
+                                                        <Box>
+                                                            <Typography variant="subtitle2">Contract_Agreement_v{item}.pdf</Typography>
+                                                            <Typography variant="caption" color="text.secondary">Signed on {new Date().toLocaleDateString()}</Typography>
+                                                        </Box>
+                                                    </Box>
+                                                    <Button size="small" variant="text" startIcon={<Download size={16} />}>Download</Button>
+                                                </Box>
+                                                {i < 2 && <Divider />}
+                                            </Box>
+                                        ))}
+                                    </CardContent>
+                                </Card>
+                            </Box>
+                        </Grid>
+                    </Grid>
+                </TabPanel>
+
+                {/* SIGN TAB */}
+                <TabPanel value={tabValue} index={1}>
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={8}>
                             <Card sx={{ height: '100%' }}>
@@ -177,7 +311,7 @@ export default function Dashboard() {
                                             border: '2px dashed',
                                             borderColor: selectedFile ? 'primary.main' : 'divider',
                                             borderRadius: 2,
-                                            p: 6,
+                                            p: 8,
                                             textAlign: 'center',
                                             cursor: 'pointer',
                                             bgcolor: selectedFile ? 'rgba(99, 102, 241, 0.05)' : 'transparent',
@@ -194,11 +328,11 @@ export default function Dashboard() {
                                             onChange={handleFileChange}
                                         />
                                         {selectedFile ? (
-                                            <Box>
+                                            <motion.div initial={{ scale: 0.8 }} animate={{ scale: 1 }}>
                                                 <FileCheck size={48} color="#6366f1" style={{ marginBottom: 16 }} />
                                                 <Typography variant="h6">{selectedFile.name}</Typography>
                                                 <Typography variant="body2" color="text.secondary">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</Typography>
-                                            </Box>
+                                            </motion.div>
                                         ) : (
                                             <Box>
                                                 <FileUp size={48} color="#94a3b8" style={{ marginBottom: 16 }} />
@@ -236,10 +370,10 @@ export default function Dashboard() {
                             <Card>
                                 <CardContent>
                                     <Typography variant="h6" gutterBottom>Instructions</Typography>
-                                    <Box component="ul" sx={{ pl: 2, color: 'text.secondary' }}>
-                                        <li>Ensure you have generated a certificate in the Certificate tab.</li>
+                                    <Box component="ul" sx={{ pl: 2, color: 'text.secondary', display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                        <li>Ensure you have generated a certificate in the <b>Certificate</b> tab.</li>
                                         <li>Upload a PDF document.</li>
-                                        <li>Click Sign Document.</li>
+                                        <li>Click <b>Sign Document</b>.</li>
                                         <li>The system will embed your digital signature.</li>
                                         <li>Download the signed file immediately.</li>
                                     </Box>
@@ -249,12 +383,19 @@ export default function Dashboard() {
                     </Grid>
                 </TabPanel>
 
-                <TabPanel value={tabValue} index={1}>
+                {/* CERTIFICATE TAB */}
+                <TabPanel value={tabValue} index={2}>
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={6}>
                             <Card>
                                 <CardContent>
-                                    <Typography variant="h6" gutterBottom>Generate Personal Certificate</Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 3 }}>
+                                        <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: 'primary.main' }}>
+                                            <KeyRound color="white" size={24} />
+                                        </Box>
+                                        <Typography variant="h6">Generate Personal Certificate</Typography>
+                                    </Box>
+
                                     <Typography variant="body2" color="text.secondary" paragraph>
                                         Create a new PFX certificate to sign documents. This will overwrite any existing certificate.
                                     </Typography>
@@ -266,7 +407,7 @@ export default function Dashboard() {
                                         value={pfxPassword}
                                         onChange={(e) => setPfxPassword(e.target.value)}
                                         helperText="Min. 6 characters. Remember this password."
-                                        sx={{ mb: 2 }}
+                                        sx={{ mb: 3 }}
                                     />
 
                                     <Button
@@ -274,6 +415,7 @@ export default function Dashboard() {
                                         onClick={handleCreatePfx}
                                         disabled={isGeneratingPfx}
                                         fullWidth
+                                        size="large"
                                     >
                                         {isGeneratingPfx ? 'Generating...' : 'Generate Certificate'}
                                     </Button>
@@ -283,7 +425,8 @@ export default function Dashboard() {
                     </Grid>
                 </TabPanel>
 
-                <TabPanel value={tabValue} index={2}>
+                {/* ADMIN TAB */}
+                <TabPanel value={tabValue} index={3}>
                     <Grid container spacing={3}>
                         <Grid item xs={12} md={6}>
                             <Card>
