@@ -148,7 +148,8 @@ export default function Dashboard() {
             enqueueSnackbar('Please draw a signature first', { variant: 'warning' });
             return;
         }
-        setSignatureData(sigCanvas.current.getTrimmedCanvas().toDataURL('image/png'));
+        // Fallback to getCanvas() since getTrimmedCanvas() is causing bundler issues
+        setSignatureData(sigCanvas.current.getCanvas().toDataURL('image/png'));
         setOpenSigDialog(false);
     };
 

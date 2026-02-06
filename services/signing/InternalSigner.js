@@ -35,7 +35,7 @@ class InternalSigner extends Signer {
           height: imgHeight,
         });
 
-        const modifiedBytes = await pdfDoc.save();
+        const modifiedBytes = await pdfDoc.save({ useObjectStreams: false });
         pdfBuffer = Buffer.from(modifiedBytes);
 
       } catch (err) {
