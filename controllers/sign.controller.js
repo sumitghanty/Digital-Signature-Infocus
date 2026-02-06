@@ -18,11 +18,30 @@ async function signPdf(req, res) {
   const outputFile = `signed-${Date.now()}-${req.file.originalname}`;
   const outputPath = path.join(signedDir, outputFile);
 
+  // Handle Visual Signature
+  let signatureImage = null;
+  if (req.body.signatureImage) {
+    try {
+      // Remove data URL prefix if present (e.g., "data:image/png;base64,")
+      const matches = req.body.signatureImage.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
+
+      if (matches && matches.length === 3) {
+        signatureImage = Buffer.from(matches[2], 'base64');
+      } else {
+        // Assume raw base64 if no prefix
+        signatureImage = Buffer.from(req.body.signatureImage, 'base64');
+      }
+    } catch (e) {
+      console.error("Invalid signature image format", e);
+    }
+  }
+
   try {
     await signingService.signPdf({
       inputPdf: req.file.path,
       outputPdf: outputPath,
-      user
+      user,
+      signatureImage
     });
 
     res.json({

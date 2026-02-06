@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
     Box,
     Typography,
@@ -16,7 +16,12 @@ import {
     Paper,
     Avatar,
     Divider,
-    CircularProgress
+    CircularProgress,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    IconButton
 } from '@mui/material';
 import {
     FileUp,
@@ -28,9 +33,13 @@ import {
     FileSignature,
     LayoutDashboard,
     Clock,
-    Activity
+    Activity,
+    PenTool,
+    Trash2,
+    X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import SignatureCanvas from 'react-signature-canvas';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axios';
 import { useSnackbar } from 'notistack';
@@ -106,6 +115,11 @@ export default function Dashboard() {
     const [isSigning, setIsSigning] = useState(false);
     const [signedFile, setSignedFile] = useState(null);
 
+    // Visual Signature State
+    const [openSigDialog, setOpenSigDialog] = useState(false);
+    const [signatureData, setSignatureData] = useState(null);
+    const sigCanvas = useRef({});
+
     // PFX State
     const [pfxPassword, setPfxPassword] = useState('');
     const [isGeneratingPfx, setIsGeneratingPfx] = useState(false);
@@ -125,12 +139,28 @@ export default function Dashboard() {
         }
     };
 
+    const handleClearSignature = () => {
+        sigCanvas.current.clear();
+    };
+
+    const handleSaveSignature = () => {
+        if (sigCanvas.current.isEmpty()) {
+            enqueueSnackbar('Please draw a signature first', { variant: 'warning' });
+            return;
+        }
+        setSignatureData(sigCanvas.current.getTrimmedCanvas().toDataURL('image/png'));
+        setOpenSigDialog(false);
+    };
+
     const handleSign = async () => {
         if (!selectedFile) return;
         setIsSigning(true);
 
         const formData = new FormData();
         formData.append('pdf', selectedFile);
+        if (signatureData) {
+            formData.append('signatureImage', signatureData);
+        }
 
         try {
             const res = await api.post('/sign', formData, {
@@ -305,7 +335,18 @@ export default function Dashboard() {
                         <Grid item xs={12} md={8}>
                             <Card sx={{ height: '100%' }}>
                                 <CardContent>
-                                    <Typography variant="h6" gutterBottom>Upload & Sign</Typography>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                                        <Typography variant="h6">Upload & Sign</Typography>
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={<PenTool size={18} />}
+                                            onClick={() => setOpenSigDialog(true)}
+                                            color={signatureData ? 'success' : 'primary'}
+                                        >
+                                            {signatureData ? 'Signature Added' : 'Draw Signature'}
+                                        </Button>
+                                    </Box>
+
                                     <Box
                                         sx={{
                                             border: '2px dashed',
@@ -342,6 +383,20 @@ export default function Dashboard() {
                                         )}
                                     </Box>
 
+                                    {signatureData && (
+                                        <Box sx={{ mt: 3, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                                <Typography variant="subtitle2" color="text.secondary">Visual Signature Preview:</Typography>
+                                                <IconButton size="small" onClick={() => setSignatureData(null)} color="error">
+                                                    <Trash2 size={16} />
+                                                </IconButton>
+                                            </Box>
+                                            <Box sx={{ bgcolor: '#fff', p: 1, borderRadius: 1, display: 'inline-block' }}>
+                                                <img src={signatureData} alt="Signature" style={{ height: 60, maxWidth: '100%' }} />
+                                            </Box>
+                                        </Box>
+                                    )}
+
                                     <Box sx={{ mt: 3, display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                                         {signedFile && (
                                             <Button
@@ -371,11 +426,10 @@ export default function Dashboard() {
                                 <CardContent>
                                     <Typography variant="h6" gutterBottom>Instructions</Typography>
                                     <Box component="ul" sx={{ pl: 2, color: 'text.secondary', display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                        <li>Ensure you have generated a certificate in the <b>Certificate</b> tab.</li>
-                                        <li>Upload a PDF document.</li>
-                                        <li>Click <b>Sign Document</b>.</li>
-                                        <li>The system will embed your digital signature.</li>
-                                        <li>Download the signed file immediately.</li>
+                                        <li>Generate a PFX certificate (required for digital signing).</li>
+                                        <li>(Optional) Click <b>Draw Signature</b> to add a visual signature.</li>
+                                        <li>Upload your PDF document.</li>
+                                        <li>Click <b>Sign Document</b> to embed both digital and visual signatures.</li>
                                     </Box>
                                 </CardContent>
                             </Card>
@@ -467,6 +521,42 @@ export default function Dashboard() {
                     </Grid>
                 </TabPanel>
             </Paper>
+
+            {/* Signature Dialog */}
+            <Dialog
+                open={openSigDialog}
+                onClose={() => setOpenSigDialog(false)}
+                maxWidth="sm"
+                fullWidth
+                PaperProps={{
+                    sx: { borderRadius: 3, overflow: 'hidden' }
+                }}
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                    Draw Your Signature
+                    <IconButton onClick={() => setOpenSigDialog(false)}>
+                        <X size={20} />
+                    </IconButton>
+                </DialogTitle>
+                <DialogContent sx={{ p: 4, display: 'flex', justifyContent: 'center', bgcolor: '#f1f5f9' }}>
+                    <Box sx={{ border: '1px solid #cbd5e1', bgcolor: '#fff', borderRadius: 2, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}>
+                        <SignatureCanvas
+                            ref={sigCanvas}
+                            penColor="black"
+                            canvasProps={{ width: 400, height: 200, className: 'sigCanvas' }}
+                            backgroundColor="rgba(255,255,255,1)"
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                    <Button onClick={handleClearSignature} color="error" startIcon={<Trash2 size={16} />}>
+                        Clear
+                    </Button>
+                    <Button onClick={handleSaveSignature} variant="contained">
+                        Use Signature
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 }
