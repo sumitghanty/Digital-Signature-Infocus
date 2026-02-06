@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const db = require("../utils/db");
+const User = require("../models/User");
 const signingService = require("../services/signing/SigningService");
 
 async function signPdf(req, res) {
@@ -8,9 +8,16 @@ async function signPdf(req, res) {
     return res.status(400).json({ error: "PDF file required" });
   }
 
-  await db.read();
-  const user = db.data.users.find(u => u.id === req.user.id);
-  if (!user) return res.status(404).json({ error: "User not found" });
+  const user = await User.findByPk(req.user.id);
+  // Map User model fields to what the signing service expects
+  // The service expects user.pfx and user.pfxPass, but our model has pfxPath and pfxPassword
+  const userData = user ? user.toJSON() : null;
+  if (userData) {
+    userData.pfx = userData.pfxPath;
+    userData.pfxPass = userData.pfxPassword;
+  }
+
+  if (!userData) return res.status(404).json({ error: "User not found" });
 
   const signedDir = path.join(__dirname, "../signed");
   if (!fs.existsSync(signedDir)) fs.mkdirSync(signedDir);
@@ -22,13 +29,10 @@ async function signPdf(req, res) {
   let signatureImage = null;
   if (req.body.signatureImage) {
     try {
-      // Remove data URL prefix if present (e.g., "data:image/png;base64,")
       const matches = req.body.signatureImage.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-
       if (matches && matches.length === 3) {
         signatureImage = Buffer.from(matches[2], 'base64');
       } else {
-        // Assume raw base64 if no prefix
         signatureImage = Buffer.from(req.body.signatureImage, 'base64');
       }
     } catch (e) {
@@ -40,7 +44,7 @@ async function signPdf(req, res) {
     await signingService.signPdf({
       inputPdf: req.file.path,
       outputPdf: outputPath,
-      user,
+      user: userData,
       signatureImage
     });
 

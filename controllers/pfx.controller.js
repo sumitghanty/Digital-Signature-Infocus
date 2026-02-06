@@ -1,7 +1,7 @@
 const { exec } = require("child_process");
 const path = require("path");
 const fs = require("fs");
-const db = require("../utils/db");
+const User = require("../models/User");
 
 function getOpenSslPath() {
   const gitPath = "C:\\Program Files\\Git\\usr\\bin\\openssl.exe";
@@ -14,7 +14,6 @@ function getOpenSslPath() {
 const OPENSSL_BIN = getOpenSslPath();
 
 function run(cmd) {
-  // Replace direct "openssl" call with our resolved path
   const finalCmd = cmd.replace(/^openssl/, OPENSSL_BIN);
 
   return new Promise((resolve, reject) => {
@@ -38,8 +37,7 @@ async function generatePfx(req, res) {
     });
   }
 
-  await db.read();
-  const user = db.data.users.find(u => u.id === userId);
+  const user = await User.findByPk(userId);
   if (!user) return res.status(404).json({ error: "User not found" });
 
   const certDir = path.join(__dirname, "../certs");
@@ -71,9 +69,9 @@ async function generatePfx(req, res) {
     fs.unlinkSync(crtPath);
 
     // 5️⃣ Save only AFTER success
-    user.pfx = pfxPath;
-    user.pfxPass = password;
-    await db.write();
+    user.pfxPath = pfxPath;
+    user.pfxPassword = password;
+    await user.save();
 
     res.json({
       message: "PFX generated successfully",
@@ -83,7 +81,6 @@ async function generatePfx(req, res) {
   } catch (err) {
     console.error("PFX generation failed:", err);
 
-    // cleanup partial files
     [keyPath, crtPath, pfxPath].forEach(f => {
       if (fs.existsSync(f)) fs.unlinkSync(f);
     });

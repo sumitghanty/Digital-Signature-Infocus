@@ -38,6 +38,13 @@ class InternalSigner extends Signer {
         const modifiedBytes = await pdfDoc.save({ useObjectStreams: false });
         pdfBuffer = Buffer.from(modifiedBytes);
 
+        // Fix for "Expected xref at NaN" error:
+        // Remove anything after the last %%EOF
+        const lastEofIndex = pdfBuffer.lastIndexOf('%%EOF');
+        if (lastEofIndex !== -1) {
+          pdfBuffer = pdfBuffer.slice(0, lastEofIndex + 5); // +5 to include %%EOF
+        }
+
       } catch (err) {
         console.error("Failed to embed visual signature:", err);
         // Continue to text signing even if visual fails

@@ -1,32 +1,24 @@
-const db = require("../utils/db");
+const User = require("../models/User");
 const bcrypt = require("bcrypt");
-const { v4: uuid } = require("uuid");
 
 async function createUser({ username, password, role }) {
-  await db.read();
-
-  if (db.data.users.find(u => u.username === username))
-    throw new Error("User already exists");
+  const existingUser = await User.findOne({ where: { username } });
+  if (existingUser) throw new Error("User already exists");
 
   const hashed = await bcrypt.hash(password, 10);
 
-  const user = {
-    id: uuid(),
+  const user = await User.create({
     username,
     password: hashed,
-    role,
-    pfx: null,
-    pfxPass: null
-  };
+    role: role || 'user'
+  });
 
-  db.data.users.push(user);
-  await db.write();
-  return user;
+  return user.toJSON();
 }
 
 async function findUser(username) {
-  await db.read();
-  return db.data.users.find(u => u.username === username);
+  const user = await User.findOne({ where: { username } });
+  return user ? user.toJSON() : null;
 }
 
 module.exports = { createUser, findUser };

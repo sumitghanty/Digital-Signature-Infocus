@@ -24,9 +24,10 @@ api.interceptors.response.use(
     (error) => {
         if (error.response && error.response.status === 401) {
             // Token expired or invalid
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
+            // Token expired or invalid
+            // localStorage.removeItem('token');
+            // localStorage.removeItem('user');
+            // window.location.href = '/login'; // Don't auto-redirect, let UI show error
         }
         return Promise.reject(error);
     }
